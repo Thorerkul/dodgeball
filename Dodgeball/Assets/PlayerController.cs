@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public int playerID = -1;
+
+    public bool isDummy = true;
+
     public GameObject referenceball;
     Rigidbody rb;
     public float deadZone = 0.2f;
@@ -29,10 +33,41 @@ public class PlayerController : MonoBehaviour
     public bool canPickupBall;
     public bool canThrow;
 
+    public int health = 5;
+    public int maxHealth = 5;
+
     // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+
+        if (isDummy)
+        {
+            canMove = false;
+            canPickupBall = false;
+            canThrow = false;
+        }
+    }
+
+    void Throw(Vector3 inputVector)
+    {
+        hasBall = false;
+        canPickupBall = true;
+        GameObject newball = Instantiate(referenceball);
+        if (isOnRedTeam)
+        {
+            newball.transform.position = transform.position + Vector3.forward * 3;
+            newball.GetComponent<Rigidbody>().velocity = (Vector3.forward * 50 + (inputVector * 50) + rb.velocity) / 2;
+            newball.GetComponent<ballScript>().isThrownByRed = true;
+        } else
+        {
+            newball.transform.position = transform.position + Vector3.back * 3;
+            newball.GetComponent<Rigidbody>().velocity = (Vector3.back * 50 + (inputVector * 50) + rb.velocity) / 2;
+            newball.GetComponent<ballScript>().isThrownByRed = false;
+        }
+
+        newball.GetComponent<ballScript>().isThrown = true;
+        newball.GetComponent<ballScript>().knockBack = 100;
     }
 
     // Update is called once per frame
@@ -46,14 +81,15 @@ public class PlayerController : MonoBehaviour
         Vector3 inputVector = new Vector3(inputX, 0, inputZ);
         if (hasBall && canThrow && Input.GetAxis("Throw") > 0.5f)
         {
-            hasBall = false;
-            canPickupBall = true;
-            GameObject newball = Instantiate(referenceball);
-            if (isOnRedTeam)
-            {
-                newball.transform.position = transform.position + Vector3.forward * 3;
-                newball.GetComponent<Rigidbody>().velocity = (Vector3.forward * 50 + (inputVector * 50) + rb.velocity) / 2;
-            }
+            Throw(inputVector);
+        }
+
+        if (isDummy)
+        {
+            // Gradually reduce velocity to zero when no input is detected
+            Vector3 velocityChange = -rb.velocity;
+            velocityChange = Vector3.ClampMagnitude(velocityChange, stopSpeed * Time.deltaTime);
+            rb.velocity += new Vector3(velocityChange.x, 0, velocityChange.z);
         }
 
         if (canMove && !isDodging)
@@ -84,7 +120,7 @@ public class PlayerController : MonoBehaviour
                 // Gradually reduce velocity to zero when no input is detected
                 Vector3 velocityChange = -rb.velocity;
                 velocityChange = Vector3.ClampMagnitude(velocityChange, stopSpeed * Time.deltaTime);
-                rb.velocity += velocityChange;
+                rb.velocity += new Vector3(velocityChange.x, 0, velocityChange.z);
             }
 
             // Check for dodge input
@@ -125,6 +161,25 @@ public class PlayerController : MonoBehaviour
             if (other == redZone)
             {
                 rb.transform.position = new Vector3(0, rb.transform.position.y,  12.5f);
+            }
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.layer == 8)
+        {
+            ballScript ball = collision.gameObject.GetComponent<ballScript>();
+            if (ball.isThrownByRed != isOnRedTeam && ball.isThrown)
+            {
+                health -= 1;
+                ball.isThrown = false;
+
+                Vector3 forceDirection = new Vector3(transform.position.x - ball.transform.position.x, 1, transform.position.z - ball.transform.position.z);
+
+                forceDirection.Normalize();
+
+                rb.AddForce(forceDirection * ball.knockBack, ForceMode.Impulse);
             }
         }
     }
