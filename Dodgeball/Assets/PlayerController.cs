@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+
 
 public class PlayerController : MonoBehaviour
 {
@@ -36,6 +38,8 @@ public class PlayerController : MonoBehaviour
     public int health = 5;
     public int maxHealth = 5;
 
+    private Vector3 inputVector;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -47,6 +51,12 @@ public class PlayerController : MonoBehaviour
             canPickupBall = false;
             canThrow = false;
         }
+    }
+
+    public void OnMove(InputAction.CallbackContext value)
+    {
+        Vector2 input = value.ReadValue<Vector2>();
+        inputVector = new Vector3(input.x, 0, input.y);
     }
 
     void Throw(Vector3 inputVector)
@@ -73,12 +83,6 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Get input from the horizontal and vertical axes
-        float inputX = Input.GetAxis("Horizontal");
-        float inputZ = Input.GetAxis("Vertical");
-
-        // Create a new Vector3 based on the input
-        Vector3 inputVector = new Vector3(inputX, 0, inputZ);
         if (hasBall && canThrow && Input.GetAxis("Throw") > 0.5f)
         {
             Throw(inputVector);
