@@ -1172,7 +1172,7 @@ Transform:
   m_GameObject: {fileID: 927768743}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.1, y: 2.65, z: -12.8}
+  m_LocalPosition: {x: 27.1, y: 2.65, z: -28.6}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -1217,7 +1217,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b51db10eeede61148b033fb36c013a27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isDummy: 0
+  playerID: -1
+  isDummy: 1
   referenceball: {fileID: 2057868355}
   deadZone: 0.2
   isOnRedTeam: 1
