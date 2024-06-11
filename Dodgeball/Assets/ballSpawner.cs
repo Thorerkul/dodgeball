@@ -23,8 +23,11 @@ public class ballSpawner : MonoBehaviour
 
     public void OnSpawn(InputAction.CallbackContext value)
     {
-        //Debug.Log(value.ReadValue<bool>());
-        GameObject newball = Instantiate(referenceBall);
-        newball.transform.position = transform.position;
+        if (value.phase == InputActionPhase.Performed)
+        {
+            GameObject newball = Instantiate(referenceBall);
+            newball.transform.position = transform.position;
+        }
+
     }
 }

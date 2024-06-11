@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -34,6 +35,8 @@ public class PlayerController : MonoBehaviour
     public bool hasBall;
     public bool canPickupBall;
     public bool canThrow;
+    public bool isInPickupRange;
+    public GameObject pickupableBall;
 
     public int health = 5;
     public int maxHealth = 5;
@@ -41,7 +44,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 inputVector;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
 
@@ -51,12 +54,44 @@ public class PlayerController : MonoBehaviour
             canPickupBall = false;
             canThrow = false;
         }
+
+        referenceball = GameObject.FindWithTag("ReferenceBall");
+        redZone = GameObject.FindWithTag("RedZone").GetComponent<Collider>();
+        blueZone = GameObject.FindWithTag("BlueZone").GetComponent<Collider>();
     }
 
     public void OnMove(InputAction.CallbackContext value)
     {
         Vector2 input = value.ReadValue<Vector2>();
         inputVector = new Vector3(input.x, 0, input.y);
+    }
+
+    public void OnThrow(InputAction.CallbackContext value)
+    {
+        
+        if (hasBall && canThrow && value.phase == InputActionPhase.Performed)
+        {
+            Throw(inputVector);
+        }
+    }
+
+    public void OnDodge(InputAction.CallbackContext value)
+    {
+        // Check for dodge input
+        if (Time.time > lastDodgeTime + dodgeCooldown && value.phase == InputActionPhase.Performed)
+        {
+            StartCoroutine(Dodge(inputVector));
+        }
+    }
+
+    public void OnPickup(InputAction.CallbackContext value)
+    {
+        if (canPickupBall && isInPickupRange)
+        {
+            hasBall = true;
+            canPickupBall = false;
+            Destroy(pickupableBall.transform.parent.gameObject);
+        }
     }
 
     void Throw(Vector3 inputVector)
@@ -83,9 +118,9 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (hasBall && canThrow && Input.GetAxis("Throw") > 0.5f)
+        if (health <= 0)
         {
-            Throw(inputVector);
+            Destroy(gameObject);
         }
 
         if (isDummy)
@@ -126,12 +161,6 @@ public class PlayerController : MonoBehaviour
                 velocityChange = Vector3.ClampMagnitude(velocityChange, stopSpeed * Time.deltaTime);
                 rb.velocity += new Vector3(velocityChange.x, 0, velocityChange.z);
             }
-
-            // Check for dodge input
-            if (Input.GetAxis("Dodge") > 0.5f && Time.time > lastDodgeTime + dodgeCooldown)
-            {
-                StartCoroutine(Dodge(inputVector));
-            }
         }
     }
 
@@ -154,18 +183,24 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isOnRedTeam)
+        if (isOnRedTeam && other.gameObject.layer == 10)
         {
             if (other == blueZone)
             {
                 rb.transform.position = new Vector3(0, rb.transform.position.y, -12.5f);
             }
-        } else
+        } else if (!isOnRedTeam && other.gameObject.layer == 10)
         {
             if (other == redZone)
             {
                 rb.transform.position = new Vector3(0, rb.transform.position.y,  12.5f);
             }
+        }
+
+        if (other.gameObject.layer == 8)
+        {
+            isInPickupRange = true;
+            pickupableBall = other.gameObject;
         }
     }
 
@@ -188,16 +223,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void OnTriggerStay(Collider other)
+    private void OnTriggerExit(Collider other)
     {
         if (other.gameObject.layer == 8)
         {
-            if (canPickupBall && Input.GetAxis("Grab") > 0.5f)
-            {
-                hasBall = true;
-                canPickupBall = false;
-                Destroy(other.transform.parent.gameObject);
-            }
+            isInPickupRange = false;
         }
     }
 }
